@@ -1,0 +1,69 @@
+[package]
+name = "skillward"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+description = "Take an agent skill apart before installing it — the complete deterministic scanner ensemble, fused into one offline verdict."
+authors = ["Coroboros <ob@coroboros.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/coroboros/skillward"
+homepage = "https://github.com/coroboros/skillward#readme"
+keywords = ["security", "skill", "scanner", "sarif", "cli"]
+categories = ["command-line-utilities", "development-tools"]
+# Published to crates.io as `skillward`; the `@coroboros/skillward` npm wrapper is added in distribution.
+
+[[bin]]
+name = "skillward"
+path = "src/main.rs"
+
+[dependencies]
+anstream = "1.0.0"
+anstyle = "1.0.14"
+clap = { version = "4.6.1", features = ["derive"] }
+indicatif = "0.18.4"
+rayon = "1.12.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+# Ephemeral remote-clone and per-tool output directories, removed on drop.
+tempfile = "3.27.0"
+
+[dev-dependencies]
+assert_cmd = "2.2.2"
+predicates = "3.1.4"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+# The orchestrator never panics on user input or a misbehaving tool — every
+# failure routes through the error enum to a stable exit code.
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+
+[profile.release]
+strip = true
+lto = "thin"
+
+# Cross-platform release automation, consumed by coroboros/ci's rust-packages
+# pipeline (it runs `dist plan`/`build` when this table is present). release-plz
+# and a consumer deny.toml are intentionally absent — the shared pipeline pins the
+# version, generates the CHANGELOG, cuts the release, and imposes the cargo-deny
+# policy centrally.
+[package.metadata.dist]
+cargo-dist-version = "0.32.0"
+ci = "github"
+installers = ["shell", "powershell", "homebrew", "npm"]
+targets = [
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-unknown-linux-musl",
+    "x86_64-pc-windows-msvc",
+]
+tap = "coroboros/homebrew-tap"
+npm-scope = "@coroboros"
+publish-jobs = ["homebrew", "npm"]
+install-path = "CARGO_HOME"

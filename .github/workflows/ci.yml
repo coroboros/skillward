@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: coroboros/ci/.github/workflows/rust-packages.yml@v0
+    permissions:
+      contents: write   # GitHub Release + commit-back on tag
+      id-token: write   # crates.io + npm OIDC publish on tag
+    secrets:
+      # First publish of a new crate only — drop once Trusted Publishing is configured.
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      # Binary distribution ([package.metadata.dist] in Cargo.toml) — both optional:
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      NPM_PACKAGE_REGISTRY_TOKEN: ${{ secrets.NPM_PACKAGE_REGISTRY_TOKEN }}

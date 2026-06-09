@@ -1,0 +1,4 @@
+* text=auto eol=lf
+
+# SARIF fixtures are checked-in test data — never normalize line endings.
+*.sarif binary

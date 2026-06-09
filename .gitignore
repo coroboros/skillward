@@ -1,0 +1,21 @@
+/target
+**/*.rs.bk
+*.pdb
+
+# Local agent + editor noise
+.claude/settings.local.json
+.claude/output/
+CLAUDE.local.md
+
+# Per-project credentials (see multi-account rule)
+.envrc
+.envrc.local
+
+# OS
+.DS_Store
+*.log
+
+# Scan reports written into the repo root during local runs (test fixtures under
+# tests/fixtures/sarif/ are tracked).
+/*.sarif
+/report.json

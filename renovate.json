@@ -1,0 +1,51 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "schedule:earlyMondays",
+    ":semanticCommits",
+    ":dependencyDashboard",
+    ":separateMajorReleases"
+  ],
+  "labels": ["renovate"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "rangeStrategy": "bump",
+  "pinDigests": true,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Bump the skillward-bundle image pinned in src/bundle.rs",
+      "managerFilePatterns": ["/^src/bundle\\.rs$/"],
+      "matchStrings": [
+        "//\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s+pub const DEFAULT_BUNDLE_IMAGE: &str = \"[^:\"@]+(?::(?<currentValue>[^\"@]+))?(?:@(?<currentDigest>sha256:[a-f0-9]+))?\";"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": false
+    },
+    {
+      "description": "The bundle image is smoke-tested and security-gated upstream before its tag exists, so patch/minor automerge; majors (adapter-argv contract) stay manual.",
+      "matchManagers": ["custom.regex"],
+      "groupName": "skillward-bundle image",
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "matchManagers": ["cargo"],
+      "groupName": "cargo crates"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions"
+    }
+  ]
+}

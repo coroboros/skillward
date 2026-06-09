@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": { "driver": { "name": "cc-audit" } },
+      "results": [
+        {
+          "ruleId": "mcp-excessive-capability",
+          "level": "warning",
+          "message": { "text": "MCP tool requests broad filesystem capability (over-permission)" },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "/scan/config/mcp.json" },
+                "region": { "startLine": 5 }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
