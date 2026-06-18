@@ -13,10 +13,10 @@ use crate::error::SkillwardError;
 
 /// The default bundle image: built and cosign-signed from its GitLab source-of-truth
 /// repo `coroboros/security/infrastructure/skillward-bundle`, published to the GitHub
-/// Container Registry and mirrored to Docker Hub. Before tagging skillward, replace the
-/// tag-only pre-release ref with the published `tag@sha256:<manifest-list>` ref.
+/// Container Registry and mirrored to Docker Hub. The manifest-list digest is pinned for
+/// byte-reproducible scanner execution.
 // renovate: datasource=docker depName=ghcr.io/coroboros/skillward-bundle
-pub const DEFAULT_BUNDLE_IMAGE: &str = "ghcr.io/coroboros/skillward-bundle:0.1.0";
+pub const DEFAULT_BUNDLE_IMAGE: &str = "ghcr.io/coroboros/skillward-bundle@sha256:6f34a70b974a6775fd2ee1e1d5966451da2f85ee56bdfa62778c30e886046e4c";
 
 /// Override the bundle image (e.g. to a digest pin or a local build).
 pub const IMAGE_ENV: &str = "SKILLWARD_BUNDLE_IMAGE";
