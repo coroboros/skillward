@@ -11,7 +11,7 @@ skillward runs every maintained offline scanner that adds a unique detection axi
 
 [![crates.io](https://img.shields.io/crates/v/skillward?style=flat-square&color=000000)](https://crates.io/crates/skillward)
 [![ci](https://img.shields.io/github/actions/workflow/status/coroboros/skillward/ci.yml?branch=main&style=flat-square&label=ci&color=000000)](https://github.com/coroboros/skillward/actions/workflows/ci.yml)
-[![license](https://img.shields.io/badge/license-MIT-000000?style=flat-square)](https://opensource.org/licenses/MIT)
+[![license](https://img.shields.io/badge/license-Apache_2.0-000000?style=flat-square)](https://opensource.org/licenses/Apache-2.0)
 [![stars](https://img.shields.io/github/stars/coroboros/skillward?style=flat-square&label=stars&color=000000)](https://github.com/coroboros/skillward)
 [![skills](https://img.shields.io/badge/skills-000000?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDE2IDE2IiBmaWxsPSJ3aGl0ZSI+PHBvbHlnb24gcG9pbnRzPSI4LDAgMTAsNiAxNiw4IDEwLDEwIDgsMTYgNiwxMCAwLDggNiw2Ii8+PC9zdmc+)](https://github.com/coroboros/agent-skills)
 [![coroboros.com](https://img.shields.io/badge/coroboros.com-000000?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiLz48cGF0aCBkPSJNMiAxMmgyME0xMiAyYTE1LjMgMTUuMyAwIDAgMSA0IDEwIDE1LjMgMTUuMyAwIDAgMS00IDEwIDE1LjMgMTUuMyAwIDAgMS00LTEwIDE1LjMgMTUuMyAwIDAgMSA0LTEweiIvPjwvc3ZnPg==)](https://coroboros.com)
@@ -98,9 +98,9 @@ result into a single verdict.
   as a clean skill.
 - **A gate, not a wall of output.** One `--fail-on` verdict per skill and a stable exit
   code, so it drops into CI without parsing.
-- **Inherited detection.** Rules come from the upstream tools, refreshed by rebuilding
-  the bundle from source on a schedule; skillward orchestrates, fuses, and gates — it
-  never authors detection.
+- **Inherited detection.** Rules come from the upstream tools. The bundle owns
+  package pins, reviewed rule commits, and offline data refreshes; skillward
+  orchestrates, fuses, and gates — it never authors detection.
 
 ## How it works
 
@@ -119,10 +119,10 @@ than noise.
    and sort so corroborated criticals lead.
 5. **Gate** — a per-skill verdict; exit `20` when any finding reaches `--fail-on`.
 
-Detection rules are never authored here. They are inherited from the upstream tools
-and refreshed by rebuilding the bundle from source on a schedule, in its own
-source-of-truth repository,
-[coroboros/infrastructure/skillward-bundle](https://gitlab.com/coroboros/infrastructure/skillward-bundle)
+Detection rules are never authored here. They are inherited from the upstream tools;
+package pins, reviewed rule commits, and offline data refreshes live in the
+bundle source-of-truth repository,
+[coroboros/security/infrastructure/skillward-bundle](https://gitlab.com/coroboros/security/infrastructure/skillward-bundle)
 — multi-arch, container-scanned, and cosign-signed with a CycloneDX SBOM.
 
 ## Scanners
@@ -232,7 +232,7 @@ Every flag; `skillward --help` prints the same surface.
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `SKILLWARD_BUNDLE_IMAGE` | the pinned ref | Override the scanner bundle image — a tag or an `@sha256:` digest, for a byte-reproducible or air-gapped scan. |
+| `SKILLWARD_BUNDLE_IMAGE` | the default bundle ref | Override the scanner bundle image — a tag or an `@sha256:` digest, for a byte-reproducible or air-gapped scan. |
 
 </details>
 
@@ -342,9 +342,9 @@ Bug reports and PRs welcome.
 - Run `cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test` before pushing.
 - A new scanner must run deterministically and offline and add an axis the ensemble
   does not already cover; add its adapter and mirror its argv in the bundle repo's
-  `smoke-test.sh` (`coroboros/infrastructure/skillward-bundle`).
+  `smoke-test.sh` (`coroboros/security/infrastructure/skillward-bundle`).
 - Target the `main` branch.
 
 ## License
 
-[MIT](LICENSE.md)
+[Apache 2.0](LICENSE.md)

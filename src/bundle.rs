@@ -1,5 +1,5 @@
 //! The scanner bundle image: a from-source build of the nine default scanners,
-//! rebuilt on a schedule so detection rules stay upstream-fresh with zero authoring.
+//! rebuilt on a schedule so offline data stays current with zero rule authoring here.
 //! skillward orchestrates; the bundle detects.
 //!
 //! `install` / `update` pull the image; a scan never pulls implicitly, so an
@@ -12,16 +12,16 @@ use crate::color;
 use crate::error::SkillwardError;
 
 /// The default bundle image: built and cosign-signed from its GitLab source-of-truth
-/// repo `coroboros/infrastructure/skillward-bundle`, published to the GitHub Container
-/// Registry (mirrored to Docker Hub). Renovate pins the digest (`pinDigests`) and bumps
-/// the tag; the env override takes a digest pin for a byte-reproducible or local build.
+/// repo `coroboros/security/infrastructure/skillward-bundle`, published to the GitHub
+/// Container Registry and mirrored to Docker Hub. Before tagging skillward, replace the
+/// tag-only pre-release ref with the published `tag@sha256:<manifest-list>` ref.
 // renovate: datasource=docker depName=ghcr.io/coroboros/skillward-bundle
 pub const DEFAULT_BUNDLE_IMAGE: &str = "ghcr.io/coroboros/skillward-bundle:0.1.0";
 
 /// Override the bundle image (e.g. to a digest pin or a local build).
 pub const IMAGE_ENV: &str = "SKILLWARD_BUNDLE_IMAGE";
 
-/// The bundle image reference: the env override, else the pinned default.
+/// The bundle image reference: the env override, else the default bundle image.
 pub fn image() -> String {
     resolve_image(std::env::var(IMAGE_ENV).ok())
 }

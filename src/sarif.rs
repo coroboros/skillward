@@ -1,9 +1,9 @@
 //! SARIF 2.1.0 in and out.
 //!
-//! Every bundled scanner can emit SARIF, so one generic reader normalizes them all
-//! into [`Finding`]s — no per-tool output parser. The writer goes the other way for
-//! `--format sarif`, emitting one run per contributing tool so GitHub code scanning
-//! and other SARIF consumers see each scanner's native results.
+//! Most bundled scanner plans emit SARIF, so one generic reader normalizes those
+//! into [`Finding`]s. The writer goes the other way for `--format sarif`, emitting
+//! one run per contributing tool so GitHub code scanning and other SARIF consumers
+//! see each scanner's native results.
 
 use serde::Deserialize;
 use serde_json::json;
@@ -105,7 +105,7 @@ pub fn parse(tool: &str, sarif: &str, scan_root: &str) -> Result<Vec<Finding>, S
 /// Strip the sandbox scan-root prefix (the `/scan` mount in Docker, or the absolute
 /// skill dir in host mode) and a leading `./` so a finding's path is relative to the
 /// scanned skill root, whatever the tool reported it against.
-fn normalize_uri(uri: &str, scan_root: &str) -> String {
+pub(crate) fn normalize_uri(uri: &str, scan_root: &str) -> String {
     let path = uri.strip_prefix("file://").unwrap_or(uri);
     // Strip the scan root only as a whole path component, so a sibling like
     // `/scanner/x` is never mistaken for a child of `/scan`.

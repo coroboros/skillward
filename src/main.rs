@@ -17,7 +17,6 @@ fn main() {
     std::process::exit(run());
 }
 
-/// Parse, configure color, dispatch. Returns the process exit code.
 fn run() -> i32 {
     let cli = Cli::parse();
     // A report written to a file must never carry ANSI; force plain there too.
@@ -40,7 +39,6 @@ fn dispatch(cli: &Cli) -> Result<i32, SkillwardError> {
     }
 }
 
-/// The default action: resolve targets, run the ensemble, fuse, report, and gate.
 fn scan(cli: &Cli) -> Result<i32, SkillwardError> {
     if cli.targets.is_empty() {
         return Ok(usage_error(
@@ -152,8 +150,6 @@ fn print_plan(cli: &Cli, selected: &[Box<dyn Scanner>], skills: usize, jobs: usi
     );
 }
 
-/// Dispatch `skillward skills`. Returns the process exit code: `0` on success, or
-/// the usage code when `get` is asked for a skill the binary does not bundle.
 fn run_skills(action: &SkillsAction) -> i32 {
     match action {
         SkillsAction::List => {

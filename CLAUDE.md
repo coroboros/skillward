@@ -16,7 +16,7 @@ inline below.
 ## Tech Stack
 - Rust, edition 2024, toolchain pinned in `rust-toolchain.toml`
 - `clap` (derive) for the surface; `anstream` + `anstyle` for color; `rayon` for the parallel batch; `serde_json` for SARIF and the JSON report
-- Detection lives in the scanner bundle image, built in the GitLab repo `coroboros/infrastructure/skillward-bundle` from pinned sources — never re-authored here
+- Detection lives in the scanner bundle image, built in the GitLab repo `coroboros/security/infrastructure/skillward-bundle` from pinned sources — never re-authored here
 - `cargo fmt` / `cargo clippy` for format/lint; `assert_cmd` + `predicates` for CLI tests
 
 ## Commands
@@ -24,20 +24,20 @@ inline below.
 - `cargo test` — unit + integration (fusion corpus, CLI contract)
 - `cargo clippy --all-targets -- -D warnings` — no-panic lints are deny-level
 - `cargo fmt --check`
-- The scanner bundle image is built and smoke-tested in `coroboros/infrastructure/skillward-bundle` (GitLab), not here.
+- The scanner bundle image is built and smoke-tested in `coroboros/security/infrastructure/skillward-bundle` (GitLab), not here.
 
 ## Important Files
 - `src/main.rs` — parse, dispatch, map errors to exit codes
 - `src/error.rs` — `SkillwardError` and the stable exit-code map (`10`/`11`/`12`/`13`/`14`/`20`)
 - `src/scanners/mod.rs` — the nine adapters; their argv must mirror the bundle repo's `smoke-test.sh`
 - `src/sandbox.rs` — the hardened `docker run` wrapper (the isolation floor)
-- `src/bundle.rs` — the bundle image ref (the pinned, cosign-signed GitLab image; digest-pinnable)
+- `src/bundle.rs` — the bundle image ref (tag-only before bundle publication, then digest-pinned before tagging skillward)
 - `src/fusion.rs` — dedup, cross-tool correlation, verdict
 - `src/sarif.rs` — SARIF 2.1.0 in/out
 - `src/skills/mod.rs` — the bundled agent-skill registry; embeds `skills/skillward/SKILL.md`
 - `skills/skillward/SKILL.md` — the agent skill, installable via `npx skills add coroboros/skillward`
 - `tests/fusion.rs` + `tests/fixtures/sarif/` — the fusion completeness corpus
-- `renovate.json` — the single deps bot (cargo, GitHub Actions, and the bundle image via the `src/bundle.rs` annotation); auto-merges the bundle bump, `pinDigests` keeps the digest
+- `renovate.json` — the single deps bot (cargo, GitHub Actions, and the bundle image via the `src/bundle.rs` annotation); `pinDigests` keeps the digest after the bundle ref is published
 - `.github/workflows/auto-tag.yml` — cuts the next SemVer on a green `main` so a Renovate bundle bump auto-releases skillward
 
 ## Rules
@@ -55,4 +55,4 @@ All other rules in `~/.agents/rules/git-conventions.md` apply. Divergences:
 - **CI** — consumes `coroboros/ci/.github/workflows/rust-packages.yml@v0` (see `.github/workflows/ci.yml`). The shared pipeline pins the version, generates the CHANGELOG, cuts the release, and imposes the cargo-deny policy centrally — so this repo carries **no `release-plz.toml` and no consumer `deny.toml`** (a local one is ignored).
 - **Branch model** — main-only: feature branch → PR → squash-merge → tag.
 - **Auto-update loop** — Renovate is the single deps bot (no Dependabot): it bumps the bundle image pinned in `src/bundle.rs` and auto-merges it; a green `main` then auto-tags the next SemVer (`.github/workflows/auto-tag.yml`), which the shared pipeline publishes. The tag push needs the `CI_RELEASE_TOKEN` repo secret — a PAT, mirroring the GitLab release-token name, since a `GITHUB_TOKEN`-pushed tag would not trigger the release run. The first release is cut manually (no baseline tag to bump from).
-- **Scanner bundle** — the image is built in a separate GitLab source-of-truth repo, `coroboros/infrastructure/skillward-bundle`, via the `coroboros/ci` container-images template: multi-arch, container-scanned, cosign-signed with a CycloneDX SBOM. It is published to `ghcr.io/coroboros/skillward-bundle` (mirrored to Docker Hub); the CLI pins that ref in `src/bundle.rs` (digest-pinnable via `SKILLWARD_BUNDLE_IMAGE`) and is versioned independently of the image.
+- **Scanner bundle** — the image is built in a separate GitLab source-of-truth repo, `coroboros/security/infrastructure/skillward-bundle`, via the `coroboros/ci` container-images template: multi-arch, container-scanned, cosign-signed with a CycloneDX SBOM. It is published to `ghcr.io/coroboros/skillward-bundle` (mirrored to Docker Hub); the CLI pins that ref in `src/bundle.rs` (digest-pinnable via `SKILLWARD_BUNDLE_IMAGE`) and is versioned independently of the image.

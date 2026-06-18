@@ -10,8 +10,10 @@
 use std::path::Path;
 use std::time::{Duration, Instant};
 
+use serde::Deserialize;
+
 use crate::cli::{Sandbox, ToolId};
-use crate::finding::{Finding, ToolError};
+use crate::finding::{Finding, Region, Severity, ToolError};
 use crate::sandbox::{self, Output, Plan};
 use crate::sarif;
 
@@ -197,7 +199,7 @@ fn scan_one_inner(
                 }
                 let report = match &plan.output {
                     Output::Stdout => exec.stdout.clone(),
-                    Output::File(name) => {
+                    Output::File(name) | Output::AguaraCheckJson(name) => {
                         let path = out_dir.join(name);
                         // Refuse a non-regular report: the out dir is world-writable to the
                         // container's foreign uid, so a misbehaving bundle could write the
@@ -223,7 +225,13 @@ fn scan_one_inner(
                     last_err = Some(format!("no report produced ({})", exec.stderr_tail()));
                     continue;
                 }
-                match sarif::parse(scanner.id(), &report, &scan_s) {
+                let parsed = match &plan.output {
+                    Output::AguaraCheckJson(_) => parse_aguara_check_json(&report, &scan_s),
+                    Output::File(_) | Output::Stdout => {
+                        sarif::parse(scanner.id(), &report, &scan_s)
+                    }
+                };
+                match parsed {
                     // A clean scan is a valid empty result — `produced` flips true so
                     // it is reported as PASS, never as a tool-error.
                     Ok(mut parsed) => {
@@ -249,8 +257,9 @@ fn scan_one_inner(
 
 // ── Adapters ──────────────────────────────────────────────────────────────────
 // Each adapter's argv runs the tool in its deterministic, offline-capable mode and
-// writes SARIF to a file (or stdout for ramparts). A change here must land in the
-// bundle repo's `smoke-test.sh` too, or the image and the orchestrator drift.
+// writes a normalized report format that this layer can parse. A change here must
+// land in the bundle repo's `smoke-test.sh` too, or the image and the orchestrator
+// drift.
 
 /// NVIDIA SkillSpector — deepest SKILL.md taint→exec. `--no-llm` is static-only;
 /// its lone OSV call is severed by `--network=none`.
@@ -274,6 +283,60 @@ impl Scanner for SkillSpector {
             ]),
             output: Output::File(report.to_owned()),
         }]
+    }
+}
+
+#[derive(Deserialize)]
+struct AguaraCheckDoc {
+    findings: Vec<AguaraCheckFinding>,
+}
+
+#[derive(Deserialize)]
+struct AguaraCheckFinding {
+    severity: String,
+    title: String,
+    detail: String,
+    path: String,
+}
+
+fn parse_aguara_check_json(json: &str, scan_root: &str) -> Result<Vec<Finding>, String> {
+    let doc: AguaraCheckDoc = serde_json::from_str(json).map_err(|e| e.to_string())?;
+    Ok(doc
+        .findings
+        .into_iter()
+        .map(|f| {
+            let rule_id = advisory_id(&f.title).unwrap_or(&f.title).to_owned();
+            let message = if f.detail.trim().is_empty() {
+                f.title
+            } else {
+                format!("{}: {}", f.title, f.detail)
+            };
+            Finding {
+                tool: "aguara".to_owned(),
+                class: crate::finding::RuleClass::classify("aguara", &rule_id, &message),
+                severity: aguara_check_severity(&f.severity),
+                rule_id,
+                message,
+                file: Some(sarif::normalize_uri(&f.path, scan_root)),
+                region: Region::default(),
+            }
+        })
+        .collect())
+}
+
+fn advisory_id(title: &str) -> Option<&str> {
+    let (_, tail) = title.rsplit_once('(')?;
+    let id = tail.strip_suffix(')')?;
+    let lower = id.to_ascii_lowercase();
+    (lower.starts_with("ghsa-") || lower.starts_with("cve-")).then_some(id)
+}
+
+fn aguara_check_severity(severity: &str) -> Severity {
+    match severity.to_ascii_lowercase().as_str() {
+        "critical" => Severity::Critical,
+        "high" => Severity::High,
+        "medium" | "warning" => Severity::Medium,
+        _ => Severity::Low,
     }
 }
 
@@ -309,7 +372,7 @@ impl Scanner for Aguara {
     }
     fn commands(&self, scan: &str, out: &str) -> Vec<Plan> {
         let scan_report = "aguara-scan.sarif";
-        let check_report = "aguara-check.sarif";
+        let check_report = "aguara-check.json";
         vec![
             Plan {
                 program: "aguara".to_owned(),
@@ -329,11 +392,11 @@ impl Scanner for Aguara {
                     "check",
                     scan,
                     "--format",
-                    "sarif",
+                    "json",
                     "-o",
                     &out_file(out, check_report),
                 ]),
-                output: Output::File(check_report.to_owned()),
+                output: Output::AguaraCheckJson(check_report.to_owned()),
             },
         ]
     }
@@ -562,7 +625,38 @@ mod tests {
         let plans = Aguara.commands("/scan", "/out");
         assert_eq!(plans.len(), 2);
         assert!(plans.iter().any(|p| p.args.contains(&"scan".to_owned())));
-        assert!(plans.iter().any(|p| p.args.contains(&"check".to_owned())));
+        let check_idx = plans
+            .iter()
+            .position(|p| p.args.contains(&"check".to_owned()));
+        assert!(check_idx.is_some(), "aguara check plan");
+        let check = &plans[check_idx.unwrap_or(0)];
+        assert!(check.args.contains(&"json".to_owned()));
+        assert_eq!(
+            check.output,
+            Output::AguaraCheckJson("aguara-check.json".to_owned())
+        );
+    }
+
+    #[test]
+    fn aguara_check_json_normalizes_dependency_findings() {
+        let json = r#"{
+          "findings": [{
+            "severity": "CRITICAL",
+            "title": "event-stream 3.3.6 is a known compromised npm package (GHSA-mh6f-8j2x-4483)",
+            "detail": "malicious flatmap-stream dependency",
+            "path": "/scan/package-lock.json"
+          }]
+        }"#;
+        let parsed = parse_aguara_check_json(json, "/scan");
+        assert!(parsed.is_ok(), "valid aguara check JSON: {parsed:?}");
+        let findings = parsed.unwrap_or_default();
+        assert_eq!(findings.len(), 1);
+        let finding = &findings[0];
+        assert_eq!(finding.tool, "aguara");
+        assert_eq!(finding.rule_id, "GHSA-mh6f-8j2x-4483");
+        assert_eq!(finding.severity, Severity::Critical);
+        assert_eq!(finding.class, crate::finding::RuleClass::VulnerableDep);
+        assert_eq!(finding.file.as_deref(), Some("package-lock.json"));
     }
 
     #[test]

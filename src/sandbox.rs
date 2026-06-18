@@ -31,8 +31,19 @@ const POLL_MAX: Duration = Duration::from_millis(64);
 pub enum Output {
     /// A SARIF/JSON file written into the output dir, by bare filename.
     File(String),
+    /// Aguara check currently emits JSON for dependency-intel findings.
+    AguaraCheckJson(String),
     /// The report is the tool's stdout (e.g. ramparts).
     Stdout,
+}
+
+impl Output {
+    pub(crate) fn file_name(&self) -> Option<&str> {
+        match self {
+            Self::File(name) | Self::AguaraCheckJson(name) => Some(name),
+            Self::Stdout => None,
+        }
+    }
 }
 
 /// One command a scanner runs: the program, its args (already built against the
@@ -100,7 +111,7 @@ pub fn docker_argv(
         "type=bind,source={},target={SCAN_MOUNT},readonly",
         target.display()
     ));
-    if matches!(plan.output, Output::File(_)) {
+    if plan.output.file_name().is_some() {
         argv.push("--mount".to_owned());
         argv.push(format!(
             "type=bind,source={},target={OUT_MOUNT}",

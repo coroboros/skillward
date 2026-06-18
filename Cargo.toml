@@ -5,12 +5,21 @@ edition = "2024"
 rust-version = "1.96"
 description = "Take an agent skill apart before installing it — the complete deterministic scanner ensemble, fused into one offline verdict."
 authors = ["Coroboros <ob@coroboros.com>"]
-license = "MIT"
+license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/coroboros/skillward"
 homepage = "https://github.com/coroboros/skillward#readme"
 keywords = ["security", "skill", "scanner", "sarif", "cli"]
 categories = ["command-line-utilities", "development-tools"]
+include = [
+    "/Cargo.lock",
+    "/CHANGELOG.md",
+    "/LICENSE.md",
+    "/README.md",
+    "/SECURITY.md",
+    "/skills/skillward/SKILL.md",
+    "/src/**",
+]
 # Published to crates.io as `skillward`; the `@coroboros/skillward` npm wrapper is added in distribution.
 
 [[bin]]

@@ -1,7 +1,7 @@
 //! Coverage-completeness proof at the fusion layer.
 //!
 //! The bundle's real-tool completeness is proven by the bundle repo's `smoke-test.sh`
-//! (`coroboros/infrastructure/skillward-bundle`) against
+//! (`coroboros/security/infrastructure/skillward-bundle`) against
 //! the malicious fixture (out of band, needs the image). Here we prove the other
 //! half with no Docker: given each tool's SARIF for that same fixture, fusion must
 //! surface every planted threat class, corroborate the sites multiple tools agree
