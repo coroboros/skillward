@@ -37,6 +37,9 @@ mod tests {
 
     #[test]
     fn default_skill_is_findable_and_carries_its_frontmatter() {
+        // `skills get` with no name resolves the first bundled skill; pin that the
+        // embedded body is the real SKILL.md (its frontmatter `name:`), so a moved
+        // or emptied file fails here rather than shipping an empty `get`.
         let skill = find(SKILLWARD.name).expect("skillward skill is bundled");
         assert_eq!(skill.name, BUNDLED[0].name, "default get → first bundled");
         assert!(

@@ -5,7 +5,7 @@
 //! one run per contributing tool so GitHub code scanning and other SARIF consumers
 //! see each scanner's native results.
 
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use serde_json::json;
 
 use crate::finding::{Finding, Region, RuleClass, Severity};
@@ -237,8 +237,24 @@ struct SarifRule {
 
 #[derive(Deserialize, Default)]
 struct SarifRuleProps {
-    #[serde(default, rename = "security-severity")]
+    #[serde(
+        default,
+        rename = "security-severity",
+        deserialize_with = "optional_string_or_number"
+    )]
     security_severity: Option<String>,
+}
+
+fn optional_string_or_number<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<serde_json::Value>::deserialize(deserializer)?;
+    Ok(match value {
+        Some(serde_json::Value::String(value)) => Some(value),
+        Some(serde_json::Value::Number(value)) => Some(value.to_string()),
+        _ => None,
+    })
 }
 
 /// A rule's `defaultConfiguration` — the level applied when a result omits its own.
@@ -388,6 +404,15 @@ mod tests {
             "results":[{"ruleId":"r","level":"warning","message":{"text":"m"}}]}]}"#;
         let findings = parse("t", sarif, "/scan").unwrap();
         assert_eq!(findings[0].severity, Severity::Critical);
+    }
+
+    #[test]
+    fn numeric_security_severity_is_accepted() {
+        let sarif = r#"{"runs":[{"tool":{"driver":{
+            "name":"t","rules":[{"id":"r","properties":{"security-severity":7.5}}]}},
+            "results":[{"ruleId":"r","level":"warning","message":{"text":"m"}}]}]}"#;
+        let findings = parse("t", sarif, "/scan").unwrap();
+        assert_eq!(findings[0].severity, Severity::High);
     }
 
     #[test]

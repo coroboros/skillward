@@ -1,6 +1,6 @@
 # skillward
 
-A Rust CLI that vets an agent skill before you install it: orchestrates a Docker
+A Rust CLI that vets an agent skill before installation: orchestrates a Docker
 bundle of nine deterministic scanners, runs them offline, and fuses their findings
 into one verdict. The binary orchestrates; the bundle detects.
 
@@ -55,4 +55,4 @@ All other rules in `~/.agents/rules/git-conventions.md` apply. Divergences:
 - **CI** — consumes `coroboros/ci/.github/workflows/rust-packages.yml@v0` (see `.github/workflows/ci.yml`). The shared pipeline pins the version, generates the CHANGELOG, cuts the release, and imposes the cargo-deny policy centrally — so this repo carries **no `release-plz.toml` and no consumer `deny.toml`** (a local one is ignored).
 - **Branch model** — main-only: feature branch → PR → squash-merge → tag.
 - **Auto-update loop** — Renovate is the single deps bot (no Dependabot): it bumps the bundle image pinned in `src/bundle.rs` and auto-merges it; a green `main` then auto-tags the next SemVer (`.github/workflows/auto-tag.yml`), which the shared pipeline publishes. The tag push needs the `CI_RELEASE_TOKEN` repo secret — a PAT, mirroring the GitLab release-token name, since a `GITHUB_TOKEN`-pushed tag would not trigger the release run. The first release is cut manually (no baseline tag to bump from).
-- **Scanner bundle** — the image is built in a separate GitLab source-of-truth repo, `coroboros/security/infrastructure/skillward-bundle`, via the `coroboros/ci` container-images template: multi-arch, container-scanned, cosign-signed with a CycloneDX SBOM. It is published to `ghcr.io/coroboros/skillward-bundle` (mirrored to Docker Hub); the CLI pins that ref in `src/bundle.rs` (digest-pinnable via `SKILLWARD_BUNDLE_IMAGE`) and is versioned independently of the image.
+- **Scanner bundle** — the image is built in a separate GitLab source-of-truth repo, `coroboros/security/infrastructure/skillward-bundle`, via the `coroboros/ci` container-images template: multi-arch, container-scanned, cosign-signed with a CycloneDX SBOM. The CLI pins the GitLab Registry image in `src/bundle.rs`; GHCR and Docker Hub mirrors can be selected with `SKILLWARD_BUNDLE_IMAGE`, and the image is versioned independently of the binary.

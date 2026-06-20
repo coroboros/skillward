@@ -42,7 +42,7 @@ skillward runs every maintained offline scanner that adds a unique detection axi
 
 - macOS (Apple Silicon or Intel), Linux, or Windows.
 - **Docker** for the default sandbox — skillward runs the scanner bundle in a hardened container. `--sandbox host` drops this requirement in exchange for a local scanner install.
-- The first `skillward install` pulls the scanner bundle from the GitHub Container Registry (`ghcr.io/coroboros/skillward-bundle`), mirrored to Docker Hub (`coroboros/skillward-bundle`) — a multi-hundred-MB, multi-arch image (Python, semgrep, the trivy DB), container-scanned and cosign-signed. It is cached; subsequent scans are offline.
+- The first `skillward install` pulls the scanner bundle from the GitLab Registry (`registry.gitlab.com/coroboros/security/infrastructure/skillward-bundle`) — a multi-hundred-MB, multi-arch image (Python, semgrep, the trivy DB), container-scanned and cosign-signed. It is cached; subsequent scans are offline. GHCR (`ghcr.io/coroboros/skillward-bundle`) and Docker Hub (`coroboros/skillward-bundle`) mirrors are available via `SKILLWARD_BUNDLE_IMAGE`.
 
 ## Install
 
