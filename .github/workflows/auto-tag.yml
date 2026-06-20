@@ -1,0 +1,70 @@
+name: Auto-tag
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  auto-tag:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push' &&
+      !startsWith(github.event.workflow_run.head_commit.message, 'chore: release')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          ref: main
+          fetch-depth: 0
+          # A GITHUB_TOKEN-pushed tag won't trigger the release run.
+          token: ${{ secrets.CI_RELEASE_TOKEN }}
+
+      - name: Bump the next SemVer from Conventional Commits
+        run: |
+          set -euo pipefail
+          git fetch --tags --quiet
+          last="$(git tag --list --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)"
+          if [ -z "${last}" ]; then
+            echo "no release tag yet — the first release is cut manually; skipping"
+            exit 0
+          fi
+          major=0; minor=0; patch=0
+          while IFS= read -r subject; do
+            [ -z "${subject}" ] && continue
+            case "${subject}" in "chore: release "*) continue ;; esac
+            if printf '%s' "${subject}" | grep -qE '^[a-z]+(\([^)]+\))?!:'; then
+              major=1
+            elif printf '%s' "${subject}" | grep -qE '^feat(\([^)]+\))?:'; then
+              minor=1
+            elif printf '%s' "${subject}" | grep -qE '^(fix|perf|refactor|chore|ci|build)(\([^)]+\))?:'; then
+              patch=1
+            fi
+          done < <(git log "${last}..HEAD" --no-merges --pretty=tformat:'%s')
+          if git log "${last}..HEAD" --no-merges --pretty=tformat:'%b' | grep -q 'BREAKING CHANGE'; then
+            major=1
+          fi
+          IFS='.' read -r cur_major cur_minor cur_patch <<< "${last}"
+          if [ "${major}" -eq 1 ]; then
+            next="$((cur_major + 1)).0.0"
+          elif [ "${minor}" -eq 1 ]; then
+            next="${cur_major}.$((cur_minor + 1)).0"
+          elif [ "${patch}" -eq 1 ]; then
+            next="${cur_major}.${cur_minor}.$((cur_patch + 1))"
+          else
+            echo "no releasable commit since ${last} — nothing to tag"
+            exit 0
+          fi
+          if git rev-parse "${next}" >/dev/null 2>&1; then
+            echo "${next} already exists — skipping"
+            exit 0
+          fi
+          echo "${last} -> ${next}"
+          git config user.name "coroboros-ci-bot"
+          git config user.email "ci@coroboros.com"
+          git tag -a "${next}" -m "${next}"
+          git push origin "${next}"

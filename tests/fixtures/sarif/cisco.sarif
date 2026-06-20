@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": { "driver": { "name": "cisco" } },
+      "results": [
+        {
+          "ruleId": "yara-malware-match",
+          "level": "error",
+          "message": { "text": "YARA signature matched a known-bad payload (malware)" },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "/scan/scripts/payload.bin" },
+                "region": { "startLine": 1 }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

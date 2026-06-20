@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": { "driver": { "name": "agent-audit" } },
+      "results": [
+        {
+          "ruleId": "excessive-mcp-permissions",
+          "level": "warning",
+          "message": { "text": "MCP server granted exec:* and net:* (over-permission)" },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "/scan/config/mcp.json" },
+                "region": { "startLine": 5 }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
