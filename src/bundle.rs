@@ -15,7 +15,7 @@ use crate::error::SkillwardError;
 /// repo `coroboros/security/infrastructure/skillward-bundle`. The manifest-list digest is
 /// pinned for byte-reproducible scanner execution.
 // renovate: datasource=docker depName=registry.gitlab.com/coroboros/security/infrastructure/skillward-bundle
-pub const DEFAULT_BUNDLE_IMAGE: &str = "registry.gitlab.com/coroboros/security/infrastructure/skillward-bundle:1.0.0@sha256:fc6ac013dd7f407294b0f3ca714a85cc93f1bd690b4697d7d7b37fa4b971c6aa";
+pub const DEFAULT_BUNDLE_IMAGE: &str = "registry.gitlab.com/coroboros/security/infrastructure/skillward-bundle:1.0.2@sha256:68d50107e0179a1c5e2662cb2bc2b80282bd46d75ed7eddf4bfdafe96a8ec814";
 
 /// Override the bundle image (e.g. to a digest pin or a local build).
 pub const IMAGE_ENV: &str = "SKILLWARD_BUNDLE_IMAGE";
