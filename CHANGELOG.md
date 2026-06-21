@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.2 - 21/06/2026
+
+### Fixes
+- `release` — complete distribution with ci 0.2.9
+
+
 ## v0.1.1 - 21/06/2026
 
 ### Fixes
