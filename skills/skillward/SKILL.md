@@ -1,6 +1,6 @@
 ---
 name: skillward
-description: Vet an untrusted agent skill, plugin, or MCP server before it is installed or trusted. Runs the skillward CLI — the complete deterministic scanner ensemble, offline, fused into one verdict — then triages the report into a plain-language risk read with an install / don't-install / remediate call. Use this whenever someone is about to add or run third-party agent code (npx skills add, a marketplace or plugin, an https Git URL, a directory of skills, or a local folder), even when they only ask "is this safe?" rather than naming a scan. Trigger phrases include scan this skill, vet before install, audit this agent skill, is this skill or MCP server safe, check this repo before I trust it.
+description: Scan untrusted agent skills, plugins, or MCP servers with skillward before installation or use. Use for a deterministic security report on agent extensions.
 ---
 
 # skillward
