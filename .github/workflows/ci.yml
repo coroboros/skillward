@@ -6,9 +6,15 @@ on:
     tags: ['*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      recover_npm_0_1_3:
+        description: Publish only the existing 0.1.3 npm release artifact
+        type: boolean
+        default: false
 
 jobs:
   ci:
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.recover_npm_0_1_3 }}
     uses: coroboros/ci/.github/workflows/rust-packages.yml@v0
     permissions:
       contents: write   # GitHub Release + commit-back on tag
@@ -19,3 +25,52 @@ jobs:
       # Binary distribution ([package.metadata.dist] in Cargo.toml) — both optional:
       HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
       NPM_PACKAGE_REGISTRY_TOKEN: ${{ secrets.NPM_PACKAGE_REGISTRY_TOKEN }}
+
+  recover-npm:
+    if: ${{ github.repository == 'coroboros/skillward' && github.event_name == 'workflow_dispatch' && inputs.recover_npm_0_1_3 }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    concurrency:
+      group: release-${{ github.repository }}
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify the original release and retrieve its npm artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo=coroboros/skillward
+          tag_object="$(gh api "repos/${repo}/git/ref/tags/0.1.3" --jq '.object | select(.type == "tag") | .sha')"
+          test -n "${tag_object}"
+          gh api "repos/${repo}/git/tags/${tag_object}" --jq .object \
+            | jq -e '.type == "commit" and .sha == "7f5fdf84598fcd0e9f5e6877e4a4c46eda66cbb7"'
+          gh api "repos/${repo}/actions/runs/33994757230" \
+            | jq -e '.head_sha == "7f5fdf84598fcd0e9f5e6877e4a4c46eda66cbb7" and .head_branch == "0.1.3" and .event == "push" and .status == "completed"'
+          gh release view 0.1.3 --repo "${repo}" --json isDraft,isPrerelease \
+            | jq -e '.isDraft == false and .isPrerelease == false'
+          gh api "repos/${repo}/releases/assets/546367594" -H 'Accept: application/octet-stream' > skillward-npm-package.tar.gz
+          test "$(sha256sum skillward-npm-package.tar.gz | cut -d ' ' -f 1)" = 'bf16e304af649d6566965bf431e6b454c79f5b393a72694c78331d4d97b0a5ec'
+          tar -xOf skillward-npm-package.tar.gz package/package.json \
+            | jq -e '.name == "@coroboros/skillward" and .version == "0.1.3" and .repository == "https://github.com/coroboros/skillward"'
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+
+      - name: Publish and verify the npm shim
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PACKAGE_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${NODE_AUTH_TOKEN}" || { echo '::error::NPM_PACKAGE_REGISTRY_TOKEN is required'; exit 1; }
+          npm publish --provenance --access public --ignore-scripts ./skillward-npm-package.tar.gz
+          integrity="sha512-$(openssl dgst -sha512 -binary skillward-npm-package.tar.gz | openssl base64 -A)"
+          npm view @coroboros/skillward@0.1.3 dist --json \
+            | jq -e --arg integrity "${integrity}" '.integrity == $integrity and (.attestations.url | type == "string")'
