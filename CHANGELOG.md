@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.3 - 05/09/2026
+
+### Fixes
+- patch crossbeam and share project instructions
+
+
 ## v0.1.2 - 21/06/2026
 
 ### Fixes
