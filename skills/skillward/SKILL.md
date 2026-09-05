@@ -1,6 +1,6 @@
 ---
 name: skillward
-description: Scan untrusted agent skills, plugins, or MCP servers with skillward before installation. Use for a deterministic security report on agent extensions.
+description: Scan untrusted agent skills, plugins, or MCP servers with skillward before installation or use. Use for a deterministic security report on agent extensions.
 ---
 
 # skillward
