@@ -116,6 +116,15 @@ jobs:
                 targetPackagePermission = !targetPackagePresent ? 'absent'
                   : ['read-only', 'read-write'].includes(permission) ? permission : 'unknown';
               } catch { /* Report unknown without exposing registry responses. */ }
+            } else {
+              try {
+                const code = JSON.parse(access.stdout).error.code;
+                const categories = {
+                  E401: 'query-unauthorized', E403: 'query-forbidden', E404: 'query-not-found',
+                  ENEEDAUTH: 'query-needs-auth', EUSAGE: 'query-invalid-usage',
+                };
+                if (Object.hasOwn(categories, code)) targetPackagePermission = categories[code];
+              } catch { /* Keep unknown for non-JSON or unrecognized failures. */ }
             }
           }
           console.log(JSON.stringify({ authenticated, targetPackagePresent, targetPackagePermission }));
