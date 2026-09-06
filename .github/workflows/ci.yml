@@ -11,10 +11,14 @@ on:
         description: Publish only the existing 0.1.3 npm release artifact
         type: boolean
         default: false
+      diagnose_npm:
+        description: Check npm authentication and target package access without publishing
+        type: boolean
+        default: false
 
 jobs:
   ci:
-    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.recover_npm_0_1_3 }}
+    if: ${{ github.event_name != 'workflow_dispatch' || (!inputs.recover_npm_0_1_3 && !inputs.diagnose_npm) }}
     uses: coroboros/ci/.github/workflows/rust-packages.yml@v0
     permissions:
       contents: write   # GitHub Release + commit-back on tag
@@ -27,7 +31,7 @@ jobs:
       NPM_PACKAGE_REGISTRY_TOKEN: ${{ secrets.NPM_PACKAGE_REGISTRY_TOKEN }}
 
   recover-npm:
-    if: ${{ github.repository == 'coroboros/skillward' && github.event_name == 'workflow_dispatch' && inputs.recover_npm_0_1_3 }}
+    if: ${{ github.repository == 'coroboros/skillward' && github.event_name == 'workflow_dispatch' && inputs.recover_npm_0_1_3 && !inputs.diagnose_npm }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -74,3 +78,45 @@ jobs:
           integrity="sha512-$(openssl dgst -sha512 -binary skillward-npm-package.tar.gz | openssl base64 -A)"
           npm view @coroboros/skillward@0.1.3 dist --json \
             | jq -e --arg integrity "${integrity}" '.integrity == $integrity and (.attestations.url | type == "string")'
+
+  diagnose-npm:
+    if: ${{ github.repository == 'coroboros/skillward' && github.event_name == 'workflow_dispatch' && inputs.diagnose_npm }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+
+      - name: Check npm authentication and package permission
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PACKAGE_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { spawnSync } = require('node:child_process');
+          const target = '@coroboros/skillward';
+          const run = (...args) => spawnSync('npm', [...args, '--registry=https://registry.npmjs.org', '--logs-max=0'], {
+            encoding: 'utf8', timeout: 60000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'],
+          });
+          const identity = run('whoami');
+          const authenticated = identity.status === 0 && Boolean(identity.stdout.trim());
+          let targetPackagePresent = false;
+          let targetPackagePermission = 'unknown';
+          if (authenticated) {
+            const access = run('access', 'list', 'packages', identity.stdout.trim(), target, '--json');
+            if (access.status === 0) {
+              try {
+                const packages = JSON.parse(access.stdout);
+                targetPackagePresent = Object.hasOwn(packages, target);
+                const permission = packages[target];
+                targetPackagePermission = !targetPackagePresent ? 'absent'
+                  : ['read-only', 'read-write'].includes(permission) ? permission : 'unknown';
+              } catch { /* Report unknown without exposing registry responses. */ }
+            }
+          }
+          console.log(JSON.stringify({ authenticated, targetPackagePresent, targetPackagePermission }));
+          NODE
